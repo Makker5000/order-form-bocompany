@@ -33,7 +33,8 @@ export const COMPANY_INFO = {
   adresse: "Rue de Courcelles 14",
   codePostal: "6230 Pont-A-Celles - Belgique",
   telephone: "+32 495 74 64 90",
-  email: "info@bolights.com",
+  // email: "info@bolights.com",
+  email: "brudetilleux@gmail.com",
   tva: "BE1022778985",
 };
 
