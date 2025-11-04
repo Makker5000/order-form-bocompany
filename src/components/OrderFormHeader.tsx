@@ -1,4 +1,4 @@
-import logo from "@/assets/logo.png";
+import logo from "@/assets/Logo-BoLights.jpg";
 
 export const OrderFormHeader = () => {
   return (

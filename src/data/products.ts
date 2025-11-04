@@ -28,13 +28,13 @@ export const PRODUCTS: Product[] = [
 ];
 
 export const COMPANY_INFO = {
-  nom: "BoLights",
-  directeur: "Directeur Général",
-  adresse: "Rue de l'Innovation 42",
-  codePostal: "1000 Bruxelles, Belgique",
-  telephone: "+32 2 123 45 67",
-  email: "contact@bolights.be",
-  tva: "BE0123.456.789",
+  nom: "BO Company SRL",
+  directeur: "Levecq Boris",
+  adresse: "Rue de Courcelles 14",
+  codePostal: "6230 Pont-A-Celles - Belgique",
+  telephone: "+32 495 74 64 90",
+  email: "info@bolights.com",
+  tva: "BE1022778985",
 };
 
 export const VAT_RATE = 0.21;
