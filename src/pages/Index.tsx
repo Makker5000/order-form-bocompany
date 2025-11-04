@@ -7,7 +7,8 @@ import { OrderSummary } from "@/components/OrderSummary";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ClientInfo, OrderItem } from "@/types/order";
-import { PRODUCTS, VAT_RATE } from "@/data/products";
+import { PRODUCTS, VAT_RATE, COMPANY_INFO } from "@/data/products";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,10 +103,30 @@ const Index = () => {
     setIsSubmitting(true);
 
     try {
-      // TODO: Implement backend call to send email with PDF
-      // This will require Lovable Cloud to be enabled
+      const date = new Date().toLocaleDateString('fr-FR');
       
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate API call
+      const orderData = {
+        date,
+        company: COMPANY_INFO,
+        client,
+        items,
+        subtotal,
+        vat,
+        total,
+      };
+
+      console.log('Sending order data:', orderData);
+
+      const { data, error } = await supabase.functions.invoke('send-order', {
+        body: orderData,
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+
+      console.log('Response from send-order:', data);
 
       toast({
         title: "✅ Bon de commande envoyé avec succès!",
@@ -113,10 +134,11 @@ const Index = () => {
       });
 
       setIsLocked(true);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error sending order:', error);
       toast({
         title: "❌ Une erreur est survenue",
-        description: "Impossible d'envoyer le bon de commande. Veuillez réessayer.",
+        description: error.message || "Impossible d'envoyer le bon de commande. Veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
