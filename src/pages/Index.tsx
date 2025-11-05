@@ -117,32 +117,16 @@ const Index = () => {
 
       console.log('Sending order data:', orderData);
 
-      // const { data, error } = await supabase.functions.invoke('send-order', {
-      //   body: orderData,
-      // });
-
-      // if (error) {
-      //   console.error('Supabase function error:', error);
-      //   throw error;
-      // }
-
-       // ------------------- 🔥 Appel à ton backend Render -------------------------
-      const response = await fetch("https://order-form-bocompany-api.onrender.com", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(orderData),
+      const { data, error } = await supabase.functions.invoke('send-order', {
+        body: orderData,
       });
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Erreur serveur inconnue");
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || "Erreur serveur inconnue");
       }
 
-
-      console.log('Response from send-order:', result);
+      console.log('Response from send-order:', data);
 
       toast({
         title: "✅ Bon de commande envoyé avec succès!",
