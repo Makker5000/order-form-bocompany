@@ -142,7 +142,7 @@ const Index = () => {
       }
 
 
-      console.log('Response from send-order:', data);
+      console.log('Response from send-order:', result);
 
       toast({
         title: "✅ Bon de commande envoyé avec succès!",

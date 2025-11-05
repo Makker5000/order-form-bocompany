@@ -1,7 +1,17 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@4.0.0";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const client = new SMTPClient({
+  connection: {
+    hostname: "smtp.gmail.com",
+    port: 465,
+    tls: true,
+    auth: {
+      username: Deno.env.get("GMAIL_USER") || "",
+      password: Deno.env.get("GMAIL_PASS") || "",
+    },
+  },
+});
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -192,48 +202,39 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Generating PDF HTML...");
     const htmlContent = generatePDFHTML(orderData);
     
-    console.log("Converting HTML to PDF...");
-    // For now, we'll send the HTML directly as attachment
-    // In production, you'd want to convert it to actual PDF
-    const encoder = new TextEncoder();
-    const pdfBytes = encoder.encode(htmlContent);
-    const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
-    
-    console.log("Sending emails...");
+    console.log("Sending emails via Gmail SMTP...");
     
     const filename = `commande-${orderData.client.nom.replace(/\s+/g, '-')}-${orderData.date}.html`;
     
     // Email au client
-    const clientEmailResponse = await resend.emails.send({
-      from: "BO Company <onboarding@resend.dev>",
-      to: [orderData.client.email],
+    await client.send({
+      from: `${orderData.company.nom} <${Deno.env.get("GMAIL_USER")}>`,
+      to: orderData.client.email,
       subject: `Formulaire de commande - ${orderData.client.nom}`,
+      content: "auto",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #1e3a8a;">Confirmation de votre commande</h2>
           <p>Bonjour ${orderData.client.nom},</p>
           <p>Nous avons bien reçu votre commande d'un montant de <strong>€${orderData.total.toFixed(2)}</strong>.</p>
-          <p>Vous trouverez en pièce jointe le détail de votre commande.</p>
+          <p>Vous trouverez ci-dessous le détail de votre commande.</p>
           <p>Nous vous remercions de votre confiance.</p>
+          <br>
+          ${htmlContent}
           <br>
           <p>Cordialement,<br><strong>${orderData.company.nom}</strong></p>
         </div>
       `,
-      attachments: [
-        {
-          filename: filename,
-          content: pdfBase64,
-        },
-      ],
     });
     
-    console.log("Client email sent:", clientEmailResponse);
+    console.log("Client email sent");
     
     // Email à l'entreprise
-    const companyEmailResponse = await resend.emails.send({
-      from: "BO Company <onboarding@resend.dev>",
-      to: [orderData.company.email],
+    await client.send({
+      from: `${orderData.company.nom} <${Deno.env.get("GMAIL_USER")}>`,
+      to: orderData.company.email,
       subject: `Nouvelle commande - ${orderData.client.nom}`,
+      content: "auto",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #1e3a8a;">Nouvelle commande reçue</h2>
@@ -242,18 +243,15 @@ const handler = async (req: Request): Promise<Response> => {
           <p><strong>Email:</strong> ${orderData.client.email}</p>
           <p><strong>Téléphone:</strong> ${orderData.client.telephone}</p>
           <p><strong>Montant total:</strong> €${orderData.total.toFixed(2)}</p>
-          <p>Voir le détail en pièce jointe.</p>
+          <hr>
+          ${htmlContent}
         </div>
       `,
-      attachments: [
-        {
-          filename: filename,
-          content: pdfBase64,
-        },
-      ],
     });
     
-    console.log("Company email sent:", companyEmailResponse);
+    console.log("Company email sent");
+    
+    await client.close();
 
     return new Response(
       JSON.stringify({ 
