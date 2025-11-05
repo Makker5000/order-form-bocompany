@@ -64,133 +64,10 @@ const generatePDFHTML = (orderData: OrderData): string => {
       </tr>
     `).join('');
 
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <style>
-        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .title { font-size: 24px; font-weight: bold; color: #1e3a8a; margin-bottom: 20px; }
-        .date { text-align: right; margin-bottom: 20px; }
-        .section { margin-bottom: 30px; }
-        .section-title { font-size: 14px; font-weight: bold; color: #1e3a8a; margin-bottom: 10px; border-bottom: 2px solid #1e3a8a; padding-bottom: 5px; }
-        .info-block { margin-bottom: 5px; font-size: 12px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { background-color: #1e3a8a; color: white; padding: 10px; text-align: left; font-size: 12px; }
-        td { font-size: 11px; }
-        .totals { margin-top: 20px; }
-        .totals-row { display: flex; justify-content: flex-end; margin-bottom: 8px; font-size: 13px; }
-        .totals-label { margin-right: 20px; font-weight: bold; }
-        .totals-value { min-width: 100px; text-align: right; }
-        .total-final { font-size: 16px; color: #1e3a8a; font-weight: bold; border-top: 2px solid #1e3a8a; padding-top: 10px; }
-        .payment-info { margin-top: 30px; padding: 15px; background-color: #f3f4f6; border-radius: 5px; font-size: 11px; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div class="title">FORMULAIRE DE COMMANDE</div>
-      </div>
-      
-      <div class="date">Date: ${orderData.date}</div>
-      
-      <div class="section">
-        <div class="section-title">FOURNISSEUR</div>
-        <div class="info-block"><strong>${orderData.company.nom}</strong></div>
-        <div class="info-block">${orderData.company.directeur}</div>
-        <div class="info-block">${orderData.company.adresse}</div>
-        <div class="info-block">${orderData.company.codePostal}</div>
-        <div class="info-block">Tél: ${orderData.company.telephone}</div>
-        <div class="info-block">Email: ${orderData.company.email}</div>
-        <div class="info-block">TVA: ${orderData.company.tva}</div>
-      </div>
-      
-      <div class="section">
-        <div class="section-title">CLIENT</div>
-        <div class="info-block">Nom: ${orderData.client.nom}</div>
-        <div class="info-block">Entreprise: ${orderData.client.entreprise}</div>
-        <div class="info-block">Adresse: ${orderData.client.adresse}</div>
-        <div class="info-block">Code Postal: ${orderData.client.codePostal}</div>
-        <div class="info-block">Téléphone: ${orderData.client.telephone}</div>
-        <div class="info-block">Email: ${orderData.client.email}</div>
-      </div>
-      
-      <div class="section">
-        <div class="section-title">PRODUITS COMMANDÉS</div>
-        <table>
-          <thead>
-            <tr>
-              <th>Produit</th>
-              <th>Taille</th>
-              <th style="text-align: center;">Quantité</th>
-              <th style="text-align: right;">Prix Unit.</th>
-              <th style="text-align: right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${productsRows}
-          </tbody>
-        </table>
-        
-        <div class="totals">
-          <div class="totals-row">
-            <span class="totals-label">Sous-total HTVA:</span>
-            <span class="totals-value">€${orderData.subtotal.toFixed(2)}</span>
-          </div>
-          <div class="totals-row">
-            <span class="totals-label">TVA (21%):</span>
-            <span class="totals-value">€${orderData.vat.toFixed(2)}</span>
-          </div>
-          <div class="totals-row total-final">
-            <span class="totals-label">TOTAL TTC:</span>
-            <span class="totals-value">€${orderData.total.toFixed(2)}</span>
-          </div>
-        </div>
-      </div>
-      
-      <div class="payment-info">
-        <div><strong>Mode de paiement:</strong> Virement bancaire</div>
-        <div><strong>Frais de livraison:</strong> Gratuits pour toute commande supérieure à €350</div>
-      </div>
-    </body>
-    </html>
-  `;
-};
-
-// Function to convert HTML to PDF using Puppeteer/Playwright alternative for Deno
-const htmlToPDF = async (html: string): Promise<Uint8Array> => {
-  // Using a simple HTML to PDF conversion via an external service
-  // In production, you might want to use a dedicated service or library
-  const response = await fetch('https://api.html2pdf.app/v1/generate', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      html: html,
-      options: {
-        format: 'A4',
-        margin: {
-          top: '20mm',
-          right: '20mm',
-          bottom: '20mm',
-          left: '20mm'
-        }
-      }
-    })
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to generate PDF');
-  }
-  
-  const arrayBuffer = await response.arrayBuffer();
-  return new Uint8Array(arrayBuffer);
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body { font-family: Arial, sans-serif; padding: 40px; color: #333; } .header { text-align: center; margin-bottom: 30px; } .title { font-size: 24px; font-weight: bold; color: #1e3a8a; margin-bottom: 20px; } .date { text-align: right; margin-bottom: 20px; } .section { margin-bottom: 30px; } .section-title { font-size: 14px; font-weight: bold; color: #1e3a8a; margin-bottom: 10px; border-bottom: 2px solid #1e3a8a; padding-bottom: 5px; } .info-block { margin-bottom: 5px; font-size: 12px; } table { width: 100%; border-collapse: collapse; margin-top: 10px; } th { background-color: #1e3a8a; color: white; padding: 10px; text-align: left; font-size: 12px; } td { font-size: 11px; } .totals { margin-top: 20px; } .totals-row { display: flex; justify-content: flex-end; margin-bottom: 8px; font-size: 13px; } .totals-label { margin-right: 20px; font-weight: bold; } .totals-value { min-width: 100px; text-align: right; } .total-final { font-size: 16px; color: #1e3a8a; font-weight: bold; border-top: 2px solid #1e3a8a; padding-top: 10px; } .payment-info { margin-top: 30px; padding: 15px; background-color: #f3f4f6; border-radius: 5px; font-size: 11px; }</style></head><body><div class="header"><div class="title">FORMULAIRE DE COMMANDE</div></div><div class="date">Date: ${orderData.date}</div><div class="section"><div class="section-title">FOURNISSEUR</div><div class="info-block"><strong>${orderData.company.nom}</strong></div><div class="info-block">${orderData.company.directeur}</div><div class="info-block">${orderData.company.adresse}</div><div class="info-block">${orderData.company.codePostal}</div><div class="info-block">Tél: ${orderData.company.telephone}</div><div class="info-block">Email: ${orderData.company.email}</div><div class="info-block">TVA: ${orderData.company.tva}</div></div><div class="section"><div class="section-title">CLIENT</div><div class="info-block">Nom: ${orderData.client.nom}</div><div class="info-block">Entreprise: ${orderData.client.entreprise}</div><div class="info-block">Adresse: ${orderData.client.adresse}</div><div class="info-block">Code Postal: ${orderData.client.codePostal}</div><div class="info-block">Téléphone: ${orderData.client.telephone}</div><div class="info-block">Email: ${orderData.client.email}</div></div><div class="section"><div class="section-title">PRODUITS COMMANDÉS</div><table><thead><tr><th>Produit</th><th>Taille</th><th style="text-align: center;">Quantité</th><th style="text-align: right;">Prix Unit.</th><th style="text-align: right;">Total</th></tr></thead><tbody>${productsRows}</tbody></table><div class="totals"><div class="totals-row"><span class="totals-label">Sous-total HTVA:</span><span class="totals-value">€${orderData.subtotal.toFixed(2)}</span></div><div class="totals-row"><span class="totals-label">TVA (21%):</span><span class="totals-value">€${orderData.vat.toFixed(2)}</span></div><div class="totals-row total-final"><span class="totals-label">TOTAL TTC:</span><span class="totals-value">€${orderData.total.toFixed(2)}</span></div></div></div><div class="payment-info"><div><strong>Mode de paiement:</strong> Virement bancaire</div><div><strong>Frais de livraison:</strong> Gratuits pour toute commande supérieure à €350</div></div></body></html>`;
 };
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -204,27 +81,13 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log("Sending emails via Gmail SMTP...");
     
-    const filename = `commande-${orderData.client.nom.replace(/\s+/g, '-')}-${orderData.date}.html`;
-    
-    // Email au client
+    // Email au client - simple text version
     await client.send({
       from: `${orderData.company.nom} <${Deno.env.get("GMAIL_USER")}>`,
       to: orderData.client.email,
       subject: `Formulaire de commande - ${orderData.client.nom}`,
-      content: "auto",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1e3a8a;">Confirmation de votre commande</h2>
-          <p>Bonjour ${orderData.client.nom},</p>
-          <p>Nous avons bien reçu votre commande d'un montant de <strong>€${orderData.total.toFixed(2)}</strong>.</p>
-          <p>Vous trouverez ci-dessous le détail de votre commande.</p>
-          <p>Nous vous remercions de votre confiance.</p>
-          <br>
-          ${htmlContent}
-          <br>
-          <p>Cordialement,<br><strong>${orderData.company.nom}</strong></p>
-        </div>
-      `,
+      content: "text/html",
+      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><h2 style="color: #1e3a8a;">Confirmation de votre commande</h2><p>Bonjour ${orderData.client.nom},</p><p>Nous avons bien reçu votre commande d'un montant de <strong>€${orderData.total.toFixed(2)}</strong>.</p><p>Vous trouverez ci-dessous le détail de votre commande.</p><p>Nous vous remercions de votre confiance.</p><br>${htmlContent}<br><p>Cordialement,<br><strong>${orderData.company.nom}</strong></p></div>`,
     });
     
     console.log("Client email sent");
@@ -234,19 +97,8 @@ const handler = async (req: Request): Promise<Response> => {
       from: `${orderData.company.nom} <${Deno.env.get("GMAIL_USER")}>`,
       to: orderData.company.email,
       subject: `Nouvelle commande - ${orderData.client.nom}`,
-      content: "auto",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1e3a8a;">Nouvelle commande reçue</h2>
-          <p><strong>Client:</strong> ${orderData.client.nom}</p>
-          <p><strong>Entreprise:</strong> ${orderData.client.entreprise}</p>
-          <p><strong>Email:</strong> ${orderData.client.email}</p>
-          <p><strong>Téléphone:</strong> ${orderData.client.telephone}</p>
-          <p><strong>Montant total:</strong> €${orderData.total.toFixed(2)}</p>
-          <hr>
-          ${htmlContent}
-        </div>
-      `,
+      content: "text/html",
+      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><h2 style="color: #1e3a8a;">Nouvelle commande reçue</h2><p><strong>Client:</strong> ${orderData.client.nom}</p><p><strong>Entreprise:</strong> ${orderData.client.entreprise}</p><p><strong>Email:</strong> ${orderData.client.email}</p><p><strong>Téléphone:</strong> ${orderData.client.telephone}</p><p><strong>Montant total:</strong> €${orderData.total.toFixed(2)}</p><hr>${htmlContent}</div>`,
     });
     
     console.log("Company email sent");

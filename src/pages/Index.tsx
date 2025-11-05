@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { OrderFormHeader } from "@/components/OrderFormHeader";
 import { CompanySection } from "@/components/CompanySection";
 import { ClientSection } from "@/components/ClientSection";
 import { ProductTable } from "@/components/ProductTable";
 import { OrderSummary } from "@/components/OrderSummary";
+import { AccessCodeDialog } from "@/components/AccessCodeDialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ClientInfo, OrderItem } from "@/types/order";
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const Index = () => {
+  const [hasAccess, setHasAccess] = useState(false);
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
@@ -45,6 +47,13 @@ const Index = () => {
       total: 0,
     }))
   );
+
+  useEffect(() => {
+    const accessGranted = sessionStorage.getItem('access_granted');
+    if (accessGranted === 'true') {
+      setHasAccess(true);
+    }
+  }, []);
 
   const handleClientChange = (field: keyof ClientInfo, value: string) => {
     setClient((prev) => ({ ...prev, [field]: value }));
@@ -147,10 +156,16 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4 animate-fade-in">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-card rounded-2xl shadow-elevated p-8">
-          <OrderFormHeader />
+    <>
+      <AccessCodeDialog 
+        open={!hasAccess} 
+        onValidated={() => setHasAccess(true)} 
+      />
+      
+      <div className="min-h-screen bg-background py-8 px-4 animate-fade-in">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-card rounded-2xl shadow-elevated p-8">
+            <OrderFormHeader />
 
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             <CompanySection />
@@ -184,10 +199,10 @@ const Index = () => {
               {isSubmitting ? "Envoi en cours..." : "Envoyer la commande"}
             </Button>
           </div>
+          </div>
         </div>
-      </div>
 
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer l'envoi</AlertDialogTitle>
@@ -206,8 +221,9 @@ const Index = () => {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        </AlertDialog>
+      </div>
+    </>
   );
 };
 
