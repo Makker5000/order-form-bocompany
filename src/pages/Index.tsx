@@ -138,11 +138,16 @@ const Index = () => {
       console.log('Response from send-order:', data);
 
       toast({
-        title: "✅ Bon de commande envoyé avec succès!",
-        description: "Le formulaire a été envoyé par email au client et à l'entreprise.",
+        title: "✅ Commande envoyée",
+        description: "Votre commande a été envoyée avec succès!",
       });
 
-      setIsLocked(true);
+      setIsSubmitting(false);
+      
+      // Rediriger vers la page de confirmation
+      setTimeout(() => {
+        window.location.href = '/confirmation';
+      }, 1500);
     } catch (error: any) {
       console.error('Error sending order:', error);
       toast({

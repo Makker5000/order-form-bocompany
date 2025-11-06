@@ -38,6 +38,7 @@ const handler = async (req: Request): Promise<Response> => {
       .select('*')
       .eq('code', code.toUpperCase())
       .eq('is_used', false)
+      .eq('is_active', true)
       .single();
 
     if (error || !data) {
@@ -52,6 +53,24 @@ const handler = async (req: Request): Promise<Response> => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
+    }
+
+    // Check if code has expired
+    if (data.expires_at) {
+      const expiresAt = new Date(data.expires_at);
+      if (expiresAt < new Date()) {
+        console.log("Code expired:", code);
+        return new Response(
+          JSON.stringify({ 
+            valid: false,
+            message: "Ce code a expiré"
+          }), 
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
     }
 
     // Mark code as used

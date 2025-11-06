@@ -71,34 +71,41 @@ export const AccessCodeDialog = ({ open, onValidated }: AccessCodeDialogProps) =
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-md" hideCloseButton>
-        <DialogHeader>
-          <DialogTitle className="text-2xl text-center">Code d'accès requis</DialogTitle>
-          <DialogDescription className="text-center pt-2">
-            Veuillez entrer le code d'accès à usage unique pour accéder au formulaire de commande.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <Input
-            placeholder="Entrez le code"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            onKeyPress={handleKeyPress}
-            disabled={isValidating}
-            className="text-center text-xl tracking-widest font-mono uppercase"
-            maxLength={8}
-          />
-          <Button
-            onClick={handleValidate}
-            disabled={isValidating}
-            className="w-full"
-            size="lg"
-          >
-            {isValidating ? "Validation..." : "Valider"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <>
+      {/* Overlay avec effet de flou */}
+      {open && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40" />
+      )}
+      
+      <Dialog open={open} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md z-50" hideCloseButton>
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-center">Code d'accès requis</DialogTitle>
+            <DialogDescription className="text-center pt-2">
+              Veuillez entrer le code d'accès à usage unique pour accéder au formulaire de commande.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Input
+              placeholder="Entrez le code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              onKeyPress={handleKeyPress}
+              disabled={isValidating}
+              className="text-center text-xl tracking-widest font-mono uppercase"
+              maxLength={8}
+            />
+            <Button
+              onClick={handleValidate}
+              disabled={isValidating}
+              className="w-full"
+              size="lg"
+            >
+              {isValidating ? "Validation..." : "Valider"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

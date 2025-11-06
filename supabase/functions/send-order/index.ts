@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { encode as base64Encode } from "https://deno.land/std@0.173.0/encoding/base64.ts";
 
 const client = new SMTPClient({
   connection: {
@@ -79,26 +80,47 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Generating PDF HTML...");
     const htmlContent = generatePDFHTML(orderData);
     
+    // Créer le fichier HTML pour l'attachement
+    const encoder = new TextEncoder();
+    const htmlBytes = encoder.encode(htmlContent);
+    const htmlBase64 = base64Encode(htmlBytes.buffer);
+    
     console.log("Sending emails via Gmail SMTP...");
     
-    // Email au client - simple text version
+    // Email au client avec pièce jointe
     await client.send({
       from: `${orderData.company.nom} <${Deno.env.get("GMAIL_USER")}>`,
       to: orderData.client.email,
-      subject: `Formulaire de commande - ${orderData.client.nom}`,
+      subject: `Confirmation de commande - ${orderData.client.nom}`,
       content: "text/html",
-      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><h2 style="color: #1e3a8a;">Confirmation de votre commande</h2><p>Bonjour ${orderData.client.nom},</p><p>Nous avons bien reçu votre commande d'un montant de <strong>€${orderData.total.toFixed(2)}</strong>.</p><p>Vous trouverez ci-dessous le détail de votre commande.</p><p>Nous vous remercions de votre confiance.</p><br>${htmlContent}<br><p>Cordialement,<br><strong>${orderData.company.nom}</strong></p></div>`,
+      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><h2 style="color: #1e3a8a;">Confirmation de votre commande</h2><p>Bonjour ${orderData.client.nom},</p><p>Nous avons bien reçu votre commande d'un montant de <strong>€${orderData.total.toFixed(2)}</strong>.</p><p>Veuillez trouver votre bon de commande en pièce jointe.</p><p>Nous vous remercions de votre confiance.</p><p>Cordialement,<br><strong>${orderData.company.nom}</strong></p></div>`,
+      attachments: [
+        {
+          filename: `Commande_${orderData.client.nom}_${orderData.date.replace(/\//g, '-')}.html`,
+          content: htmlBase64,
+          encoding: "base64",
+          contentType: "text/html",
+        },
+      ],
     });
     
     console.log("Client email sent");
     
-    // Email à l'entreprise
+    // Email à l'entreprise avec pièce jointe
     await client.send({
       from: `${orderData.company.nom} <${Deno.env.get("GMAIL_USER")}>`,
       to: orderData.company.email,
       subject: `Nouvelle commande - ${orderData.client.nom}`,
       content: "text/html",
-      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><h2 style="color: #1e3a8a;">Nouvelle commande reçue</h2><p><strong>Client:</strong> ${orderData.client.nom}</p><p><strong>Entreprise:</strong> ${orderData.client.entreprise}</p><p><strong>Email:</strong> ${orderData.client.email}</p><p><strong>Téléphone:</strong> ${orderData.client.telephone}</p><p><strong>Montant total:</strong> €${orderData.total.toFixed(2)}</p><hr>${htmlContent}</div>`,
+      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><h2 style="color: #1e3a8a;">Nouvelle commande reçue</h2><p><strong>Client:</strong> ${orderData.client.nom}</p><p><strong>Entreprise:</strong> ${orderData.client.entreprise}</p><p><strong>Email:</strong> ${orderData.client.email}</p><p><strong>Téléphone:</strong> ${orderData.client.telephone}</p><p><strong>Montant total:</strong> €${orderData.total.toFixed(2)}</p><p>Veuillez trouver le bon de commande en pièce jointe.</p></div>`,
+      attachments: [
+        {
+          filename: `Commande_${orderData.client.nom}_${orderData.date.replace(/\//g, '-')}.html`,
+          content: htmlBase64,
+          encoding: "base64",
+          contentType: "text/html",
+        },
+      ],
     });
     
     console.log("Company email sent");
