@@ -22,24 +22,47 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization');
+    console.log('Authorization header present:', !!authHeader);
+    
+    if (!authHeader) {
+      console.error('No Authorization header provided');
+      return new Response(
+        JSON.stringify({ error: 'Non authentifié - en-tête manquant' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
+          headers: { Authorization: authHeader },
         },
       }
     );
 
     // Vérifier si l'utilisateur est admin
-    const { data: { user } } = await supabaseClient.auth.getUser();
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    
+    if (authError) {
+      console.error('Auth error:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Erreur d\'authentification: ' + authError.message }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     if (!user) {
+      console.error('No user found after auth');
       return new Response(
         JSON.stringify({ error: 'Non authentifié' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    console.log('User authenticated:', user.id);
 
     const { data: roleData } = await supabaseClient
       .from('user_roles')
