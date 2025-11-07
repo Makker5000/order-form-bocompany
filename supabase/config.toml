@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.manage-access-codes]
 verify_jwt = true
+
+[functions.setup-admin]
+verify_jwt = false
