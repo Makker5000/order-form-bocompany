@@ -113,7 +113,12 @@ const Index = () => {
 
     try {
       const date = new Date().toLocaleDateString('fr-FR');
+      const accessToken = sessionStorage.getItem('access_token');
       
+      if (!accessToken) {
+        throw new Error("Session expirée. Veuillez recharger la page et entrer à nouveau le code d'accès.");
+      }
+
       const orderData = {
         date,
         company: COMPANY_INFO,
@@ -122,20 +127,20 @@ const Index = () => {
         subtotal,
         vat,
         total,
+        accessToken,
       };
-
-      console.log('Sending order data:', orderData);
 
       const { data, error } = await supabase.functions.invoke('send-order', {
         body: orderData,
       });
 
       if (error) {
-        console.error('Supabase function error:', error);
         throw new Error(error.message || "Erreur serveur inconnue");
       }
 
-      console.log('Response from send-order:', data);
+      if (!data?.success) {
+        throw new Error(data?.error || "Erreur lors de l'envoi de la commande");
+      }
 
       toast({
         title: "✅ Commande envoyée",
@@ -149,7 +154,6 @@ const Index = () => {
         window.location.href = '/confirmation';
       }, 1500);
     } catch (error: any) {
-      console.error('Error sending order:', error);
       toast({
         title: "❌ Une erreur est survenue",
         description: error.message || "Impossible d'envoyer le bon de commande. Veuillez réessayer.",

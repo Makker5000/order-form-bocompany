@@ -1,9 +1,33 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { create } from "https://deno.land/x/djwt@v3.0.1/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Generate a secure token for validated access codes
+const generateAccessToken = async (codeId: string): Promise<string> => {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const token = await create(
+    { alg: "HS256", typ: "JWT" },
+    {
+      codeId,
+      exp: Date.now() / 1000 + (60 * 60), // 1 hour expiration
+      iat: Date.now() / 1000,
+    },
+    key
+  );
+
+  return token;
 };
 
 const handler = async (req: Request): Promise<Response> => {
@@ -42,7 +66,6 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (error || !data) {
-      console.log("Invalid or used code:", code);
       return new Response(
         JSON.stringify({ 
           valid: false,
@@ -59,7 +82,6 @@ const handler = async (req: Request): Promise<Response> => {
     if (data.expires_at) {
       const expiresAt = new Date(data.expires_at);
       if (expiresAt < new Date()) {
-        console.log("Code expired:", code);
         return new Response(
           JSON.stringify({ 
             valid: false,
@@ -84,12 +106,14 @@ const handler = async (req: Request): Promise<Response> => {
       throw updateError;
     }
 
-    console.log("Code validated successfully:", code);
+    // Generate secure access token
+    const accessToken = await generateAccessToken(data.id);
 
     return new Response(
       JSON.stringify({ 
         valid: true,
-        message: "Code validé avec succès"
+        message: "Code validé avec succès",
+        accessToken
       }), 
       {
         status: 200,

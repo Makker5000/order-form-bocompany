@@ -37,11 +37,12 @@ export const AccessCodeDialog = ({ open, onValidated }: AccessCodeDialogProps) =
         throw new Error(error.message || "Erreur lors de la validation");
       }
 
-      if (data?.valid) {
+      if (data?.valid && data?.accessToken) {
         toast({
           title: "✅ Accès autorisé",
           description: "Code validé avec succès!",
         });
+        sessionStorage.setItem('access_token', data.accessToken);
         sessionStorage.setItem('access_granted', 'true');
         onValidated();
       } else {
