@@ -23,7 +23,6 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    console.log('Authorization header present:', !!authHeader);
     
     if (!authHeader) {
       console.error('No Authorization header provided');
@@ -33,29 +32,20 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const supabaseClient = createClient(
+    // Extract JWT token from Authorization header
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Create Supabase client with service role to verify the JWT and get user info
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Vérifier si l'utilisateur est admin
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    // Verify JWT and get user
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     
-    if (authError) {
+    if (authError || !user) {
       console.error('Auth error:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Erreur d\'authentification: ' + authError.message }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    if (!user) {
-      console.error('No user found after auth');
       return new Response(
         JSON.stringify({ error: 'Non authentifié' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -64,7 +54,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log('User authenticated:', user.id);
 
-    const { data: roleData } = await supabaseClient
+    const { data: roleData } = await supabaseAdmin
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
@@ -78,12 +68,6 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const { action, code, expiresIn, customCode } = await req.json();
-
-    // Utiliser le service role key pour les opérations admin
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
 
     switch (action) {
       case 'create': {
