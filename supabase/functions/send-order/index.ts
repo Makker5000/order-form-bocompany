@@ -51,7 +51,7 @@ const CompanySchema = z.object({
   nom: z.string().min(1).max(200),
   directeur: z.string().min(1).max(200),
   adresse: z.string().min(1).max(500),
-  codePostal: z.string().min(1).max(20),
+  codePostal: z.string().min(1).max(100),
   telephone: z.string().min(1).max(50),
   email: z.string().email().max(255),
   tva: z.string().min(1).max(50),
@@ -61,7 +61,7 @@ const ClientSchema = z.object({
   nom: z.string().min(1).max(200),
   entreprise: z.string().min(1).max(200),
   adresse: z.string().min(1).max(500),
-  codePostal: z.string().min(1).max(20),
+  codePostal: z.string().min(1).max(100),
   telephone: z.string().min(1).max(50),
   email: z.string().email().max(255),
 });
