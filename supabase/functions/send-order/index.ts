@@ -3,6 +3,7 @@ import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.173.0/encoding/base64.ts";
 import { verify } from "https://deno.land/x/djwt@v3.0.1/mod.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { jsPDF } from "https://esm.sh/jspdf@2.5.2";
 
 const client = new SMTPClient({
   connection: {
@@ -72,8 +73,6 @@ const OrderDataSchema = z.object({
   client: ClientSchema,
   items: z.array(OrderItemSchema).min(1).max(100),
   subtotal: z.number().min(0).max(10000000),
-  vat: z.number().min(0).max(10000000),
-  total: z.number().min(0).max(10000000),
   accessToken: z.string().min(1),
 });
 
@@ -125,310 +124,187 @@ const checkRateLimit = (clientEmail: string): boolean => {
   return true;
 };
 
-const generateDetailedPDF = (orderData: OrderData): string => {
+const generatePDF = (orderData: OrderData): string => {
+  const doc = new jsPDF();
+  let yPos = 20;
+
+  // Header
+  doc.setFontSize(20);
+  doc.setTextColor(30, 58, 138);
+  doc.text("FORMULAIRE DE COMMANDE", 105, yPos, { align: "center" });
+  yPos += 10;
+  
+  doc.setFontSize(10);
+  doc.setTextColor(107, 114, 128);
+  doc.text("Bon de commande détaillé", 105, yPos, { align: "center" });
+  yPos += 15;
+
+  // Date
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Date: ${orderData.date}`, 195, yPos, { align: "right" });
+  yPos += 15;
+
+  // Fournisseur
+  doc.setFontSize(12);
+  doc.setTextColor(30, 58, 138);
+  doc.text("Fournisseur", 15, yPos);
+  yPos += 8;
+  
+  doc.setFontSize(9);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Société: ${orderData.company.nom}`, 15, yPos);
+  yPos += 5;
+  doc.text(`Directeur: ${orderData.company.directeur}`, 15, yPos);
+  yPos += 5;
+  doc.text(`Adresse: ${orderData.company.adresse}`, 15, yPos);
+  yPos += 5;
+  doc.text(`Code Postal: ${orderData.company.codePostal}`, 15, yPos);
+  yPos += 5;
+  doc.text(`Téléphone: ${orderData.company.telephone}`, 15, yPos);
+  yPos += 5;
+  doc.text(`Email: ${orderData.company.email}`, 15, yPos);
+  yPos += 5;
+  doc.text(`N° TVA: ${orderData.company.tva}`, 15, yPos);
+  yPos += 12;
+
+  // Client
+  doc.setFontSize(12);
+  doc.setTextColor(30, 58, 138);
+  doc.text("Client", 15, yPos);
+  yPos += 8;
+  
+  doc.setFontSize(9);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Nom: ${orderData.client.nom}`, 15, yPos);
+  yPos += 5;
+  doc.text(`Entreprise: ${orderData.client.entreprise}`, 15, yPos);
+  yPos += 5;
+  doc.text(`Adresse: ${orderData.client.adresse}`, 15, yPos);
+  yPos += 5;
+  doc.text(`Code Postal: ${orderData.client.codePostal}`, 15, yPos);
+  yPos += 5;
+  doc.text(`Téléphone: ${orderData.client.telephone}`, 15, yPos);
+  yPos += 5;
+  doc.text(`Email: ${orderData.client.email}`, 15, yPos);
+  yPos += 12;
+
+  // Produits
+  doc.setFontSize(12);
+  doc.setTextColor(30, 58, 138);
+  doc.text("Produits Commandés", 15, yPos);
+  yPos += 8;
+
+  // Table headers
+  doc.setFillColor(30, 58, 138);
+  doc.rect(15, yPos - 5, 180, 7, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(9);
+  doc.text("Produit", 17, yPos);
+  doc.text("Taille", 90, yPos);
+  doc.text("Qté", 115, yPos);
+  doc.text("Prix Unit.", 135, yPos);
+  doc.text("Total", 170, yPos);
+  yPos += 7;
+
+  // Table rows
+  doc.setTextColor(0, 0, 0);
+  orderData.items
+    .filter(item => item.quantity > 0)
+    .forEach((item, index) => {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      if (index % 2 === 0) {
+        doc.setFillColor(249, 250, 251);
+        doc.rect(15, yPos - 4, 180, 6, "F");
+      }
+      
+      doc.text(item.productName.substring(0, 35), 17, yPos);
+      doc.text(item.size, 90, yPos);
+      doc.text(item.quantity.toString(), 115, yPos);
+      doc.text(`€${item.unitPrice.toFixed(2)}`, 135, yPos);
+      doc.setFont(undefined, "bold");
+      doc.text(`€${item.total.toFixed(2)}`, 170, yPos);
+      doc.setFont(undefined, "normal");
+      yPos += 6;
+    });
+
+  yPos += 10;
+
+  // Total
+  doc.setFillColor(249, 250, 251);
+  doc.rect(15, yPos - 4, 180, 10, "F");
+  doc.setFontSize(14);
+  doc.setTextColor(30, 58, 138);
+  doc.setFont(undefined, "bold");
+  doc.text("TOTAL HTVA:", 120, yPos);
+  doc.text(`€${orderData.subtotal.toFixed(2)}`, 170, yPos);
+  doc.setFont(undefined, "normal");
+  yPos += 15;
+
+  // Payment info
+  doc.setFontSize(11);
+  doc.setTextColor(30, 58, 138);
+  doc.text("Informations de Paiement", 15, yPos);
+  yPos += 7;
+  
+  doc.setFontSize(9);
+  doc.setTextColor(0, 0, 0);
+  doc.text("• Mode de paiement: Virement bancaire", 15, yPos);
+  yPos += 5;
+  doc.text("• Frais de livraison: Gratuits pour toute commande supérieure à €350", 15, yPos);
+  yPos += 15;
+
+  // Footer
+  doc.setTextColor(107, 114, 128);
+  doc.text("Merci pour votre confiance !", 105, yPos, { align: "center" });
+
+  return doc.output("datauristring").split(",")[1];
+};
+
+const generateEmailSummary = (orderData: OrderData): string => {
   const productsRows = orderData.items
     .filter(item => item.quantity > 0)
     .map(item => `
-      <tr>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(item.productName)}</td>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${escapeHtml(item.size)}</td>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">€${item.unitPrice.toFixed(2)}</td>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: bold; color: #1e3a8a;">€${item.total.toFixed(2)}</td>
+      <tr style="border-bottom: 1px solid #e5e7eb;">
+        <td style="padding: 12px 8px;">${escapeHtml(item.productName)}</td>
+        <td style="padding: 12px 8px; text-align: center;">${escapeHtml(item.size)}</td>
+        <td style="padding: 12px 8px; text-align: center;">${item.quantity}</td>
+        <td style="padding: 12px 8px; text-align: right;">€${item.unitPrice.toFixed(2)}</td>
+        <td style="padding: 12px 8px; text-align: right; font-weight: bold;">€${item.total.toFixed(2)}</td>
       </tr>
     `).join('');
 
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Commande ${escapeHtml(orderData.client.nom)}</title>
-  <style>
-    @media print {
-      body { margin: 0; padding: 20mm; }
-      .no-print { display: none; }
-    }
-    body { 
-      font-family: 'Helvetica Neue', Arial, sans-serif; 
-      padding: 40px; 
-      color: #1f2937; 
-      max-width: 900px;
-      margin: 0 auto;
-      background-color: #ffffff;
-    }
-    .header { 
-      text-align: center; 
-      margin-bottom: 40px; 
-      padding-bottom: 20px;
-      border-bottom: 3px solid #1e3a8a;
-    }
-    .title { 
-      font-size: 32px; 
-      font-weight: bold; 
-      color: #1e3a8a; 
-      margin: 0 0 10px 0;
-      letter-spacing: 1px;
-    }
-    .subtitle {
-      font-size: 14px;
-      color: #6b7280;
-      margin: 0;
-    }
-    .date { 
-      text-align: right; 
-      margin-bottom: 30px; 
-      font-size: 14px;
-      color: #6b7280;
-      font-weight: 500;
-    }
-    .section { 
-      margin-bottom: 35px; 
-      background-color: #f9fafb;
-      padding: 20px;
-      border-radius: 8px;
-      border-left: 4px solid #1e3a8a;
-    }
-    .section-title { 
-      font-size: 16px; 
-      font-weight: bold; 
-      color: #1e3a8a; 
-      margin: 0 0 15px 0;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    .info-block { 
-      margin-bottom: 8px; 
-      font-size: 13px;
-      line-height: 1.6;
-    }
-    .info-label {
-      font-weight: 600;
-      color: #374151;
-      display: inline-block;
-      min-width: 120px;
-    }
-    .info-value {
-      color: #1f2937;
-    }
-    table { 
-      width: 100%; 
-      border-collapse: collapse; 
-      margin-top: 15px;
-      background-color: #ffffff;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    th { 
-      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-      color: white; 
-      padding: 15px 10px; 
-      text-align: left; 
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    th:nth-child(2), th:nth-child(3), th:nth-child(4), th:nth-child(5) {
-      text-align: center;
-    }
-    td { 
-      font-size: 13px;
-      background-color: #ffffff;
-    }
-    tr:hover td {
-      background-color: #f9fafb;
-    }
-    .totals { 
-      margin-top: 30px; 
-      background-color: #f9fafb;
-      padding: 20px;
-      border-radius: 8px;
-    }
-    .totals-row { 
-      display: flex; 
-      justify-content: flex-end; 
-      margin-bottom: 12px; 
-      font-size: 14px;
-      align-items: center;
-    }
-    .totals-label { 
-      margin-right: 30px; 
-      font-weight: 600;
-      color: #374151;
-      min-width: 150px;
-      text-align: right;
-    }
-    .totals-value { 
-      min-width: 120px; 
-      text-align: right;
-      color: #1f2937;
-      font-weight: 500;
-    }
-    .total-final { 
-      font-size: 20px; 
-      color: #1e3a8a; 
-      font-weight: bold; 
-      border-top: 2px solid #1e3a8a; 
-      padding-top: 15px;
-      margin-top: 15px;
-    }
-    .payment-info { 
-      margin-top: 40px; 
-      padding: 20px; 
-      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-      border-radius: 8px; 
-      font-size: 13px;
-      border-left: 4px solid #10b981;
-    }
-    .payment-info-title {
-      font-weight: bold;
-      color: #1e3a8a;
-      margin-bottom: 10px;
-      font-size: 14px;
-    }
-    .payment-item {
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-    }
-    .payment-item strong {
-      color: #374151;
-      min-width: 150px;
-    }
-    .footer {
-      margin-top: 50px;
-      padding-top: 20px;
-      border-top: 2px solid #e5e7eb;
-      text-align: center;
-      font-size: 12px;
-      color: #6b7280;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="title">FORMULAIRE DE COMMANDE</div>
-    <div class="subtitle">Bon de commande détaillé</div>
-  </div>
-  
-  <div class="date"><strong>Date:</strong> ${escapeHtml(orderData.date)}</div>
-  
-  <div class="section">
-    <div class="section-title">📋 Fournisseur</div>
-    <div class="info-block">
-      <span class="info-label">Société:</span>
-      <span class="info-value"><strong>${escapeHtml(orderData.company.nom)}</strong></span>
-    </div>
-    <div class="info-block">
-      <span class="info-label">Directeur:</span>
-      <span class="info-value">${escapeHtml(orderData.company.directeur)}</span>
-    </div>
-    <div class="info-block">
-      <span class="info-label">Adresse:</span>
-      <span class="info-value">${escapeHtml(orderData.company.adresse)}</span>
-    </div>
-    <div class="info-block">
-      <span class="info-label">Code Postal:</span>
-      <span class="info-value">${escapeHtml(orderData.company.codePostal)}</span>
-    </div>
-    <div class="info-block">
-      <span class="info-label">Téléphone:</span>
-      <span class="info-value">${escapeHtml(orderData.company.telephone)}</span>
-    </div>
-    <div class="info-block">
-      <span class="info-label">Email:</span>
-      <span class="info-value">${escapeHtml(orderData.company.email)}</span>
-    </div>
-    <div class="info-block">
-      <span class="info-label">N° TVA:</span>
-      <span class="info-value">${escapeHtml(orderData.company.tva)}</span>
-    </div>
-  </div>
-  
-  <div class="section">
-    <div class="section-title">👤 Client</div>
-    <div class="info-block">
-      <span class="info-label">Nom:</span>
-      <span class="info-value"><strong>${escapeHtml(orderData.client.nom)}</strong></span>
-    </div>
-    <div class="info-block">
-      <span class="info-label">Entreprise:</span>
-      <span class="info-value">${escapeHtml(orderData.client.entreprise)}</span>
-    </div>
-    <div class="info-block">
-      <span class="info-label">Adresse:</span>
-      <span class="info-value">${escapeHtml(orderData.client.adresse)}</span>
-    </div>
-    <div class="info-block">
-      <span class="info-label">Code Postal:</span>
-      <span class="info-value">${escapeHtml(orderData.client.codePostal)}</span>
-    </div>
-    <div class="info-block">
-      <span class="info-label">Téléphone:</span>
-      <span class="info-value">${escapeHtml(orderData.client.telephone)}</span>
-    </div>
-    <div class="info-block">
-      <span class="info-label">Email:</span>
-      <span class="info-value">${escapeHtml(orderData.client.email)}</span>
-    </div>
-  </div>
-  
-  <div class="section" style="background-color: #ffffff;">
-    <div class="section-title">📦 Produits Commandés</div>
-    <table>
-      <thead>
-        <tr>
-          <th>Produit</th>
-          <th>Taille</th>
-          <th>Quantité</th>
-          <th>Prix Unitaire</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${productsRows}
-      </tbody>
-    </table>
-    
-    <div class="totals">
-      <div class="totals-row">
-        <span class="totals-label">Sous-total HTVA:</span>
-        <span class="totals-value">€${orderData.subtotal.toFixed(2)}</span>
-      </div>
-      <div class="totals-row">
-        <span class="totals-label">TVA (21%):</span>
-        <span class="totals-value">€${orderData.vat.toFixed(2)}</span>
-      </div>
-      <div class="totals-row total-final">
-        <span class="totals-label">TOTAL TTC:</span>
-        <span class="totals-value">€${orderData.total.toFixed(2)}</span>
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
+      <h2 style="color: #1e3a8a; margin-bottom: 20px;">Résumé de votre commande</h2>
+      
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <thead>
+          <tr style="background-color: #1e3a8a; color: white;">
+            <th style="padding: 12px 8px; text-align: left;">Produit</th>
+            <th style="padding: 12px 8px; text-align: center;">Taille</th>
+            <th style="padding: 12px 8px; text-align: center;">Quantité</th>
+            <th style="padding: 12px 8px; text-align: right;">Prix Unit.</th>
+            <th style="padding: 12px 8px; text-align: right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${productsRows}
+        </tbody>
+      </table>
+      
+      <div style="margin-top: 20px; padding: 15px; background-color: #f9fafb; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; color: #1e3a8a;">
+          <span>TOTAL HTVA:</span>
+          <span>€${orderData.subtotal.toFixed(2)}</span>
+        </div>
       </div>
     </div>
-  </div>
-  
-  <div class="payment-info">
-    <div class="payment-info-title">💳 Informations de Paiement</div>
-    <div class="payment-item">
-      <strong>Mode de paiement:</strong> Virement bancaire
-    </div>
-    <div class="payment-item">
-      <strong>Frais de livraison:</strong> Gratuits pour toute commande supérieure à €350
-    </div>
-  </div>
-  
-  <div class="footer">
-    <p>Merci pour votre confiance !</p>
-    <p style="margin-top: 10px; font-size: 11px;">Pour imprimer ce document en PDF, utilisez Ctrl+P (ou Cmd+P sur Mac) et sélectionnez "Enregistrer au format PDF"</p>
-  </div>
-</body>
-</html>`;
+  `;
 };
 
 const handler = async (req: Request): Promise<Response> => {
@@ -488,11 +364,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const htmlContent = generateDetailedPDF(orderData);
-    
-    const encoder = new TextEncoder();
-    const htmlBytes = encoder.encode(htmlContent);
-    const htmlBase64 = base64Encode(htmlBytes.buffer);
+    const pdfBase64 = generatePDF(orderData);
+    const emailSummary = generateEmailSummary(orderData);
     
     // Email to client
     await client.send({
@@ -500,13 +373,23 @@ const handler = async (req: Request): Promise<Response> => {
       to: orderData.client.email,
       subject: `Confirmation de commande - ${escapeHtml(orderData.client.nom)}`,
       content: "text/html",
-      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><h2 style="color: #1e3a8a;">Confirmation de votre commande</h2><p>Bonjour ${escapeHtml(orderData.client.nom)},</p><p>Nous avons bien reçu votre commande d'un montant de <strong>€${orderData.total.toFixed(2)}</strong>.</p><p>Veuillez trouver votre bon de commande en pièce jointe.</p><p>Nous vous remercions de votre confiance.</p><p>Cordialement,<br><strong>${escapeHtml(orderData.company.nom)}</strong></p></div>`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1e3a8a;">Confirmation de votre commande</h2>
+          <p>Bonjour ${escapeHtml(orderData.client.nom)},</p>
+          <p>Nous avons bien reçu votre commande d'un montant de <strong>€${orderData.subtotal.toFixed(2)} HTVA</strong>.</p>
+          ${emailSummary}
+          <p style="margin-top: 20px;">Veuillez trouver votre bon de commande détaillé en pièce jointe au format PDF.</p>
+          <p>Nous vous remercions de votre confiance.</p>
+          <p>Cordialement,<br><strong>${escapeHtml(orderData.company.nom)}</strong></p>
+        </div>
+      `,
       attachments: [
         {
-          filename: `Commande_${escapeHtml(orderData.client.nom)}_${escapeHtml(orderData.date).replace(/\//g, '-')}.html`,
-          content: htmlBase64,
+          filename: `Commande_${escapeHtml(orderData.client.nom)}_${escapeHtml(orderData.date).replace(/\//g, '-')}.pdf`,
+          content: pdfBase64,
           encoding: "base64",
-          contentType: "text/html",
+          contentType: "application/pdf",
         },
       ],
     });
@@ -517,13 +400,24 @@ const handler = async (req: Request): Promise<Response> => {
       to: orderData.company.email,
       subject: `Nouvelle commande - ${escapeHtml(orderData.client.nom)}`,
       content: "text/html",
-      html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><h2 style="color: #1e3a8a;">Nouvelle commande reçue</h2><p><strong>Client:</strong> ${escapeHtml(orderData.client.nom)}</p><p><strong>Entreprise:</strong> ${escapeHtml(orderData.client.entreprise)}</p><p><strong>Email:</strong> ${escapeHtml(orderData.client.email)}</p><p><strong>Téléphone:</strong> ${escapeHtml(orderData.client.telephone)}</p><p><strong>Montant total:</strong> €${orderData.total.toFixed(2)}</p><p>Veuillez trouver le bon de commande en pièce jointe.</p></div>`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1e3a8a;">Nouvelle commande reçue</h2>
+          <p><strong>Client:</strong> ${escapeHtml(orderData.client.nom)}</p>
+          <p><strong>Entreprise:</strong> ${escapeHtml(orderData.client.entreprise)}</p>
+          <p><strong>Email:</strong> ${escapeHtml(orderData.client.email)}</p>
+          <p><strong>Téléphone:</strong> ${escapeHtml(orderData.client.telephone)}</p>
+          <p><strong>Montant total:</strong> €${orderData.subtotal.toFixed(2)} HTVA</p>
+          ${emailSummary}
+          <p style="margin-top: 20px;">Veuillez trouver le bon de commande en pièce jointe.</p>
+        </div>
+      `,
       attachments: [
         {
-          filename: `Commande_${escapeHtml(orderData.client.nom)}_${escapeHtml(orderData.date).replace(/\//g, '-')}.html`,
-          content: htmlBase64,
+          filename: `Commande_${escapeHtml(orderData.client.nom)}_${escapeHtml(orderData.date).replace(/\//g, '-')}.pdf`,
+          content: pdfBase64,
           encoding: "base64",
-          contentType: "text/html",
+          contentType: "application/pdf",
         },
       ],
     });

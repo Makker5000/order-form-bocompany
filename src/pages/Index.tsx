@@ -75,8 +75,6 @@ const Index = () => {
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-  const vat = subtotal * VAT_RATE;
-  const total = subtotal + vat;
 
   const validateForm = () => {
     if (!client.nom || !client.entreprise || !client.adresse || 
@@ -125,8 +123,6 @@ const Index = () => {
         client,
         items,
         subtotal,
-        vat,
-        total,
         accessToken,
       };
 
@@ -195,7 +191,7 @@ const Index = () => {
 
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             <div></div>
-            <OrderSummary subtotal={subtotal} vat={vat} total={total} />
+            <OrderSummary subtotal={subtotal} />
           </div>
 
           <div className="flex justify-center">
