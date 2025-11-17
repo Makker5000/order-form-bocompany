@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ClientInfo, OrderItem } from "@/types/order";
 import { PRODUCTS, VAT_RATE, COMPANY_INFO } from "@/data/products";
 import { supabase } from "@/integrations/supabase/client";
+import { isTokenExpired, clearAccessSession } from "@/lib/tokenUtils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,10 +51,23 @@ const Index = () => {
 
   useEffect(() => {
     const accessGranted = sessionStorage.getItem('access_granted');
-    if (accessGranted === 'true') {
-      setHasAccess(true);
+    const accessToken = sessionStorage.getItem('access_token');
+    
+    if (accessGranted === 'true' && accessToken) {
+      // Check if token is expired
+      if (isTokenExpired(accessToken)) {
+        clearAccessSession();
+        toast({
+          title: "Session expirée",
+          description: "Veuillez entrer un nouveau code d'accès.",
+          variant: "destructive",
+        });
+        setHasAccess(false);
+      } else {
+        setHasAccess(true);
+      }
     }
-  }, []);
+  }, [toast]);
 
   const handleClientChange = (field: keyof ClientInfo, value: string) => {
     setClient((prev) => ({ ...prev, [field]: value }));
@@ -115,6 +129,13 @@ const Index = () => {
       
       if (!accessToken) {
         throw new Error("Session expirée. Veuillez recharger la page et entrer à nouveau le code d'accès.");
+      }
+
+      // Check if token is expired before submitting
+      if (isTokenExpired(accessToken)) {
+        clearAccessSession();
+        setHasAccess(false);
+        throw new Error("Votre session a expiré. Veuillez entrer un nouveau code d'accès.");
       }
 
       const orderData = {
