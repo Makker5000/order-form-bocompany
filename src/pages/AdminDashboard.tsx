@@ -164,6 +164,25 @@ const AdminDashboard = () => {
     navigate('/admin/login');
   };
 
+  const initializeAdmin = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('init-admin');
+
+      if (error) throw error;
+
+      toast({
+        title: "✅ Admin initialisé",
+        description: data.message,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const getCodeStatus = (code: AccessCode) => {
     if (!code.is_active) return { label: "Désactivé", variant: "secondary" as const };
     if (code.is_used) return { label: "Utilisé", variant: "default" as const };
@@ -249,11 +268,12 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="actif">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="actif">Actifs ({filterCodes('actif').length})</TabsTrigger>
                 <TabsTrigger value="utilisé">Utilisés ({filterCodes('utilisé').length})</TabsTrigger>
                 <TabsTrigger value="expiré">Expirés ({filterCodes('expiré').length})</TabsTrigger>
                 <TabsTrigger value="désactivé">Désactivés ({filterCodes('désactivé').length})</TabsTrigger>
+                <TabsTrigger value="paramètres">Paramètres</TabsTrigger>
               </TabsList>
 
               {['actif', 'utilisé', 'expiré', 'désactivé'].map((status) => (
@@ -315,6 +335,20 @@ const AdminDashboard = () => {
                   </Table>
                 </TabsContent>
               ))}
+
+              <TabsContent value="paramètres">
+                <div className="space-y-4 p-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Configuration Admin</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Initialiser ou mettre à jour les credentials de l'administrateur depuis les secrets configurés dans Cloud → Secrets.
+                    </p>
+                    <Button onClick={initializeAdmin}>
+                      Initialiser/Mettre à jour Admin
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
             </Tabs>
           </CardContent>
         </Card>

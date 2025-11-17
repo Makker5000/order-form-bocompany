@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.manage-access-codes]
 verify_jwt = true
+
+[functions.init-admin]
+verify_jwt = false
