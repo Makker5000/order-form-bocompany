@@ -32,8 +32,13 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     checkAdminStatus();
-    loadCodes();
   }, []);
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadCodes();
+    }
+  }, [isAdmin]);
 
   const checkAdminStatus = async () => {
     try {
