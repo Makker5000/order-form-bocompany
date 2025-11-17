@@ -268,43 +268,9 @@ const generatePDF = (orderData: OrderData): string => {
 const generateEmailSummary = (orderData: OrderData): string => {
   const productsRows = orderData.items
     .filter(item => item.quantity > 0)
-    .map(item => `
-      <tr style="border-bottom: 1px solid #e5e7eb;">
-        <td style="padding: 12px 8px;">${escapeHtml(item.productName)}</td>
-        <td style="padding: 12px 8px; text-align: center;">${escapeHtml(item.size)}</td>
-        <td style="padding: 12px 8px; text-align: center;">${item.quantity}</td>
-        <td style="padding: 12px 8px; text-align: right;">€${item.unitPrice.toFixed(2)}</td>
-        <td style="padding: 12px 8px; text-align: right; font-weight: bold;">€${item.total.toFixed(2)}</td>
-      </tr>
-    `).join('');
+    .map(item => `<tr style="border-bottom:1px solid #e5e7eb;"><td style="padding:12px 8px;">${escapeHtml(item.productName)}</td><td style="padding:12px 8px;text-align:center;">${escapeHtml(item.size)}</td><td style="padding:12px 8px;text-align:center;">${item.quantity}</td><td style="padding:12px 8px;text-align:right;">€${item.unitPrice.toFixed(2)}</td><td style="padding:12px 8px;text-align:right;font-weight:bold;">€${item.total.toFixed(2)}</td></tr>`).join('');
 
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
-      <h2 style="color: #1e3a8a; margin-bottom: 20px;">Résumé de votre commande</h2>
-      
-      <table style="width: 100%; border-collapse: collapse; margin: 20px 0; background-color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <thead>
-          <tr style="background-color: #1e3a8a; color: white;">
-            <th style="padding: 12px 8px; text-align: left;">Produit</th>
-            <th style="padding: 12px 8px; text-align: center;">Taille</th>
-            <th style="padding: 12px 8px; text-align: center;">Quantité</th>
-            <th style="padding: 12px 8px; text-align: right;">Prix Unit.</th>
-            <th style="padding: 12px 8px; text-align: right;">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${productsRows}
-        </tbody>
-      </table>
-      
-      <div style="margin-top: 20px; padding: 15px; background-color: #f9fafb; border-radius: 8px;">
-        <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; color: #1e3a8a;">
-          <span>TOTAL HTVA:</span>
-          <span>€${orderData.subtotal.toFixed(2)}</span>
-        </div>
-      </div>
-    </div>
-  `;
+  return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#1f2937;"><h2 style="color:#1e3a8a;margin-bottom:20px;">Résumé de votre commande</h2><table style="width:100%;border-collapse:collapse;margin:20px 0;background-color:white;box-shadow:0 1px 3px rgba(0,0,0,0.1);"><thead><tr style="background-color:#1e3a8a;color:white;"><th style="padding:12px 8px;text-align:left;">Produit</th><th style="padding:12px 8px;text-align:center;">Taille</th><th style="padding:12px 8px;text-align:center;">Quantité</th><th style="padding:12px 8px;text-align:right;">Prix Unit.</th><th style="padding:12px 8px;text-align:right;">Total</th></tr></thead><tbody>${productsRows}</tbody></table><div style="margin-top:20px;padding:15px;background-color:#f9fafb;border-radius:8px;"><div style="display:flex;justify-content:space-between;font-size:18px;font-weight:bold;color:#1e3a8a;"><span>TOTAL HTVA:</span><span>€${orderData.subtotal.toFixed(2)}</span></div></div></div>`;
 };
 
 const handler = async (req: Request): Promise<Response> => {
@@ -373,17 +339,7 @@ const handler = async (req: Request): Promise<Response> => {
       to: orderData.client.email,
       subject: `Confirmation de commande - ${escapeHtml(orderData.client.nom)}`,
       content: "text/html",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1e3a8a;">Confirmation de votre commande</h2>
-          <p>Bonjour ${escapeHtml(orderData.client.nom)},</p>
-          <p>Nous avons bien reçu votre commande d'un montant de <strong>€${orderData.subtotal.toFixed(2)} HTVA</strong>.</p>
-          ${emailSummary}
-          <p style="margin-top: 20px;">Veuillez trouver votre bon de commande détaillé en pièce jointe au format PDF.</p>
-          <p>Nous vous remercions de votre confiance.</p>
-          <p>Cordialement,<br><strong>${escapeHtml(orderData.company.nom)}</strong></p>
-        </div>
-      `,
+      html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;"><h2 style="color:#1e3a8a;">Confirmation de votre commande</h2><p>Bonjour ${escapeHtml(orderData.client.nom)},</p><p>Nous avons bien reçu votre commande d'un montant de <strong>€${orderData.subtotal.toFixed(2)} HTVA</strong>.</p>${emailSummary}<p style="margin-top:20px;">Veuillez trouver votre bon de commande détaillé en pièce jointe au format PDF.</p><p>Nous vous remercions de votre confiance.</p><p>Cordialement,<br><strong>${escapeHtml(orderData.company.nom)}</strong></p></div>`,
       attachments: [
         {
           filename: `Commande_${escapeHtml(orderData.client.nom)}_${escapeHtml(orderData.date).replace(/\//g, '-')}.pdf`,
@@ -400,18 +356,7 @@ const handler = async (req: Request): Promise<Response> => {
       to: orderData.company.email,
       subject: `Nouvelle commande - ${escapeHtml(orderData.client.nom)}`,
       content: "text/html",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1e3a8a;">Nouvelle commande reçue</h2>
-          <p><strong>Client:</strong> ${escapeHtml(orderData.client.nom)}</p>
-          <p><strong>Entreprise:</strong> ${escapeHtml(orderData.client.entreprise)}</p>
-          <p><strong>Email:</strong> ${escapeHtml(orderData.client.email)}</p>
-          <p><strong>Téléphone:</strong> ${escapeHtml(orderData.client.telephone)}</p>
-          <p><strong>Montant total:</strong> €${orderData.subtotal.toFixed(2)} HTVA</p>
-          ${emailSummary}
-          <p style="margin-top: 20px;">Veuillez trouver le bon de commande en pièce jointe.</p>
-        </div>
-      `,
+      html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;"><h2 style="color:#1e3a8a;">Nouvelle commande reçue</h2><p><strong>Client:</strong> ${escapeHtml(orderData.client.nom)}</p><p><strong>Entreprise:</strong> ${escapeHtml(orderData.client.entreprise)}</p><p><strong>Email:</strong> ${escapeHtml(orderData.client.email)}</p><p><strong>Téléphone:</strong> ${escapeHtml(orderData.client.telephone)}</p><p><strong>Montant total:</strong> €${orderData.subtotal.toFixed(2)} HTVA</p>${emailSummary}<p style="margin-top:20px;">Veuillez trouver le bon de commande en pièce jointe.</p></div>`,
       attachments: [
         {
           filename: `Commande_${escapeHtml(orderData.client.nom)}_${escapeHtml(orderData.date).replace(/\//g, '-')}.pdf`,
